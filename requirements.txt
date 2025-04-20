@@ -1,4 +1,3 @@
 python-telegram-bot
 telegram
-python-telegram-bot
 requests
