@@ -95,7 +95,7 @@ def weather_translate(description):
 # /start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen!")
+        "👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen!  -  Render")
 
 
 # Message handler
