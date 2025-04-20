@@ -53,7 +53,6 @@ def get_weather(location):
     else:
         return "😔 Bul jerdi taba almadım. Qaytadan jiberiń."
 
-
 def weather_emoji(description):
     description = description.lower()
     if "clear" in description:
@@ -70,7 +69,6 @@ def weather_emoji(description):
         return "🌫️"
     else:
         return "🌍"
-
 
 def weather_translate(description):
     description = description.lower()
@@ -89,45 +87,37 @@ def weather_translate(description):
     else:
         return "🌍"
 
-
 # Telegram handlers
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen! -> Render")
+def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    update.message.reply_text("👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen! -> Render")
 
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     location = update.message.text
     weather_info = get_weather(location)
-    await update.message.reply_text(weather_info)
+    update.message.reply_text(weather_info)
 
 # Initialize Flask app
 flask_app = Flask(__name__)
 
-async def create_app():
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    await application.initialize()
-    return application
-
-telegram_app = None
-
+# Webhook route
 @flask_app.route('/webhook', methods=['POST'])
-async def webhook():
-    global telegram_app
-    if telegram_app is None:
-        telegram_app = await create_app()
+def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    await telegram_app.process_update(update)
+    telegram_app.process_update(update)
     return "ok", 200
 
+# Home route
 @flask_app.route('/')
 def home():
     return "Bot is live!", 200
 
+# Initialize the Telegram bot application
+def create_app():
+    telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    return telegram_app
+
 if __name__ == '__main__':
-    import asyncio
-    port = int(os.environ.get("PORT", 5000))
-    loop = asyncio.get_event_loop()
-    telegram_app = loop.run_until_complete(create_app())
-    flask_app.run(host='0.0.0.0', port=port)
+    telegram_app = create_app()
+    flask_app.run(host='0.0.0.0', port=5000)
