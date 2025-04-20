@@ -1,15 +1,17 @@
 import os
 import requests
 from datetime import datetime
+from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 API_KEY = os.environ['MY_OPEN_WEATHER_MAP_API_KEY']
+TELEGRAM_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL')  # e.g., https://your-app.onrender.com/webhook
 
 # Convert country code to flag emoji
 def get_flag_emoji(country_code):
     return chr(0x1F1E6 + ord(country_code[0].upper()) - ord('A')) + chr(0x1F1E6 + ord(country_code[1].upper()) - ord('A'))
-
 
 def get_weather(location):
     url = f"http://api.openweathermap.org/data/2.5/weather?q={location}&appid={API_KEY}&units=metric"
@@ -17,7 +19,6 @@ def get_weather(location):
 
     if response.status_code == 200:
         data = response.json()
-
         city = data['name']
         country = data['sys']['country']
         country_flag = get_flag_emoji(country)
@@ -29,14 +30,12 @@ def get_weather(location):
         wind_speed = data['wind']['speed']
         wind_deg = data['wind'].get('deg', 'N/A')
 
-        # Convert sunrise/sunset to local time using timezone offset
         timezone_offset = data.get('timezone', 0)
         utc_offset_hours = timezone_offset // 3600
         utc_offset_str = f"UTC{'+' if utc_offset_hours >= 0 else ''}{utc_offset_hours}"
 
         sunrise_ts = data['sys']['sunrise'] + timezone_offset
         sunset_ts = data['sys']['sunset'] + timezone_offset
-
         sunrise = datetime.utcfromtimestamp(sunrise_ts).strftime('%H:%M')
         sunset = datetime.utcfromtimestamp(sunset_ts).strftime('%H:%M')
 
@@ -55,7 +54,6 @@ def get_weather(location):
         return "😔 Bul jerdi taba almadım. Qaytadan jiberiń."
 
 
-# Add emojis based on keywords in the description
 def weather_emoji(description):
     description = description.lower()
     if "clear" in description:
@@ -92,27 +90,44 @@ def weather_translate(description):
         return "🌍"
 
 
-# /start command handler
+# Telegram handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen! -> Render")
+    await update.message.reply_text("👋 Qalanıń atın jiberiń. Hawa-rayı haqqıda maǵlımat beremen! -> Render")
 
 
-# Message handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    location = update.message.text  # Get location directly from the message
+    location = update.message.text
     weather_info = get_weather(location)
     await update.message.reply_text(weather_info)
 
+# Initialize Flask app
+flask_app = Flask(__name__)
 
-if __name__ == "__main__":
-    TELEGRAM_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+async def create_app():
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    await application.initialize()
+    return application
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+telegram_app = None
 
-    print("Bot is running...")
-    app.run_polling()  # You can optionally specify a polling interval here if needed
-    # app.run_polling(poll_interval=1, timeout=30)
+@flask_app.route('/webhook', methods=['POST'])
+async def webhook():
+    global telegram_app
+    if telegram_app is None:
+        telegram_app = await create_app()
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "ok", 200
+
+@flask_app.route('/')
+def home():
+    return "Bot is live!", 200
+
+if __name__ == '__main__':
+    import asyncio
+    port = int(os.environ.get("PORT", 5000))
+    loop = asyncio.get_event_loop()
+    telegram_app = loop.run_until_complete(create_app())
+    flask_app.run(host='0.0.0.0', port=port)
