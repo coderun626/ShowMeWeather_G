@@ -1,6 +1,7 @@
 from flask import Flask, request
 import requests
 import os
+from datetime import datetime
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -21,9 +22,27 @@ def get_weather(city_name):
     
     if response.status_code == 200:
         main = data['main']
-        weather_description = data['weather'][0]['description']
+        weather = data['weather'][0]
+        wind = data['wind']
+        sys = data['sys']
+        
         temp = main['temp']
-        return f"The weather in {city_name} is {weather_description} with a temperature of {temp}°C."
+        feels_like = main['feels_like']
+        desc = weather['description']
+        humidity = main['humidity']
+        pressure = main['pressure']
+        wind_speed = wind['speed']
+        wind_deg = wind['deg']
+        sunrise = datetime.utcfromtimestamp(sys['sunrise']).strftime('%H:%M:%S')
+        sunset = datetime.utcfromtimestamp(sys['sunset']).strftime('%H:%M:%S')
+
+        return (f"🌡️ Temp: {temp}°C (Feels like {feels_like}°C)\n"
+                f"☁️ Condition: {desc.capitalize()}\n"
+                f"💧 Humidity: {humidity}%\n"
+                f"📈 Pressure: {pressure} hPa\n"
+                f"🌬️ Wind: {wind_speed} m/s, {wind_deg}°\n"
+                f"🌅 Sunrise: {sunrise}\n"
+                f"🌇 Sunset: {sunset}")
     else:
         return "Sorry, I couldn't retrieve the weather information."
 
@@ -33,17 +52,13 @@ def webhook():
     chat_id = data["message"]["chat"]["id"]
     message_text = data["message"]["text"]
     
-    # Remove leading/trailing whitespaces and check if the message starts with 'weather in'
-    message_text = message_text.strip().lower()
-    
-    if message_text.startswith('weather in'):
-        city_name = message_text[len('weather in '):].strip()
-        if city_name:
-            weather_info = get_weather(city_name)
-        else:
-            weather_info = "Please provide a city name after 'weather in'."
+    # Remove leading/trailing whitespaces
+    city_name = message_text.strip()
+
+    if city_name:
+        weather_info = get_weather(city_name)
     else:
-        weather_info = "Hello! Send a city name in the format 'weather in [city]' to get the weather."
+        weather_info = "Please provide a city name."
 
     requests.post(URL, json={
         "chat_id": chat_id,
