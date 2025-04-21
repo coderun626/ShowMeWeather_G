@@ -2,6 +2,7 @@ from flask import Flask, request
 import requests
 import os
 from datetime import datetime, timedelta
+import pytz
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -10,13 +11,13 @@ WEATHER_API_URL = "http://api.openweathermap.org/data/2.5/weather"
 
 app = Flask(__name__)
 
-# Emoji flags by country code
-COUNTRY_FLAGS = {
-    "US": "🇺🇸", "GB": "🇬🇧", "IN": "🇮🇳", "CA": "🇨🇦", "AU": "🇦🇺", 
-    "FR": "🇫🇷", "DE": "🇩🇪", "ES": "🇪🇸", "IT": "🇮🇹", "BR": "🇧🇷",
-    "RU": "🇷🇺", "JP": "🇯🇵", "MX": "🇲🇽", "CN": "🇨🇳", "ZA": "🇿🇦"
-    # Add more countries as needed
-}
+# Emoji flags by country code (using Unicode for flag)
+def get_flag_emoji(country_code):
+    # Convert country code to uppercase and check its length
+    if len(country_code) == 2:
+        # Convert country code to the appropriate flag emoji (regional indicator symbols)
+        return chr(0x1F1E6 + ord(country_code[0]) - ord('A')) + chr(0x1F1E6 + ord(country_code[1]) - ord('A'))
+    return "🏳️"  # Default flag if country code is invalid
 
 def convert_to_local_time(utc_timestamp, timezone_offset):
     """
@@ -55,7 +56,7 @@ def get_weather(city_name):
         
         # Get the country code and find the flag emoji
         country_code = sys['country']
-        flag = COUNTRY_FLAGS.get(country_code, "🏳️")  # Default flag if not found
+        flag = get_flag_emoji(country_code)
 
         # Get the timezone offset (in seconds)
         timezone_offset = data['timezone']
@@ -66,14 +67,15 @@ def get_weather(city_name):
 
         city_country = f"{city_name}, {country_code} {flag}"
 
-        return (f"🌍 Location: {city_country}\n"
-                f"🌡️ Temp: {temp}°C (Feels like {feels_like}°C)\n"
-                f"☁️ Condition: {desc.capitalize()}\n"
-                f"💧 Humidity: {humidity}%\n"
-                f"📈 Pressure: {pressure} hPa\n"
-                f"🌬️ Wind: {wind_speed} m/s, {wind_deg}°\n"
-                f"🌅 Sunrise: {sunrise_local} (Local) / {datetime.utcfromtimestamp(sunrise_utc).strftime('%H:%M:%S')} (UTC)\n"
-                f"🌇 Sunset: {sunset_local} (Local) / {datetime.utcfromtimestamp(sunset_utc).strftime('%H:%M:%S')} (UTC)")
+        return (f"🌍 {city_country}\n"
+            f"🌡️ Temp: {temp}°C (Feels like {feels_like}°C)\n"
+            f"☁️ Condition: {desc.capitalize()}\n"
+            f"💧 Humidity: {humidity}%\n"
+            f"📈 Pressure: {pressure} hPa\n"
+            f"🌬️ Wind: {wind_speed} m/s, {wind_deg}°\n"
+            f"🌅 Sunrise: {sunrise_local} (Local) / {datetime.utcfromtimestamp(sunrise_utc).strftime('%H:%M:%S')} (UTC)\n"
+            f"🌇 Sunset: {sunset_local} (Local) / {datetime.utcfromtimestamp(sunset_utc).strftime('%H:%M:%S')} (UTC)")
+
     else:
         return "Sorry, I couldn't retrieve the weather information."
 
