@@ -4,7 +4,7 @@ import os
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-MY_OPEN_WEATHER_MAP_API_KEY = os.environ['MY_OPEN_WEATHER_MAP_API_KEY']
+WEATHER_API_KEY = os.environ['WEATHER_API_KEY']
 WEATHER_API_URL = "http://api.openweathermap.org/data/2.5/weather"
 
 app = Flask(__name__)
@@ -12,7 +12,7 @@ app = Flask(__name__)
 def get_weather(city_name):
     params = {
         'q': city_name,
-        'appid': MY_OPEN_WEATHER_MAP_API_KEY,
+        'appid': WEATHER_API_KEY,
         'units': 'metric',  # For temperature in Celsius
         'lang': 'en'  # For English language responses
     }
@@ -33,17 +33,21 @@ def webhook():
     chat_id = data["message"]["chat"]["id"]
     message_text = data["message"]["text"]
     
-    # Check if the message starts with a location request
-    if message_text.lower().startswith('weather in'):
+    # Remove leading/trailing whitespaces and check if the message starts with 'weather in'
+    message_text = message_text.strip().lower()
+    
+    if message_text.startswith('weather in'):
         city_name = message_text[len('weather in '):].strip()
-        weather_info = get_weather(city_name)
-        response_text = weather_info
+        if city_name:
+            weather_info = get_weather(city_name)
+        else:
+            weather_info = "Please provide a city name after 'weather in'."
     else:
-        response_text = "Hello! Send a city name to get the weather."
+        weather_info = "Hello! Send a city name in the format 'weather in [city]' to get the weather."
 
     requests.post(URL, json={
         "chat_id": chat_id,
-        "text": response_text
+        "text": weather_info
     })
     
     return "OK"
