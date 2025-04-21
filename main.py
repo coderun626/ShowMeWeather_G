@@ -65,6 +65,8 @@ def get_weather(city_name):
         sunrise_local = convert_to_local_time(sunrise_utc, timezone_offset)
         sunset_local = convert_to_local_time(sunset_utc, timezone_offset)
 
+        # Use the city name from the API response to avoid ambiguity
+        city_name = data['name']
         city_country = f"{city_name}, {country_code} {flag}"
 
         return (f"🌍 {city_country}\n"
