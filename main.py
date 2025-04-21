@@ -1,8 +1,7 @@
 from flask import Flask, request
 import requests
 import os
-from datetime import datetime
-import pytz
+from datetime import datetime, timedelta
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -67,15 +66,14 @@ def get_weather(city_name):
 
         city_country = f"{city_name}, {country_code} {flag}"
 
-        return (f"🌍 {city_country}\n"
-            f"🌡️ Temp: {temp}°C (Feels like {feels_like}°C)\n"
-            f"☁️ Condition: {desc.capitalize()}\n"
-            f"💧 Humidity: {humidity}%\n"
-            f"📈 Pressure: {pressure} hPa\n"
-            f"🌬️ Wind: {wind_speed} m/s, {wind_deg}°\n"
-            f"🌅 Sunrise: {sunrise_local} (Local) / {datetime.utcfromtimestamp(sunrise_utc).strftime('%H:%M:%S')} (UTC)\n"
-            f"🌇 Sunset: {sunset_local} (Local) / {datetime.utcfromtimestamp(sunset_utc).strftime('%H:%M:%S')} (UTC)")
-
+        return (f"🌍 Location: {city_country}\n"
+                f"🌡️ Temp: {temp}°C (Feels like {feels_like}°C)\n"
+                f"☁️ Condition: {desc.capitalize()}\n"
+                f"💧 Humidity: {humidity}%\n"
+                f"📈 Pressure: {pressure} hPa\n"
+                f"🌬️ Wind: {wind_speed} m/s, {wind_deg}°\n"
+                f"🌅 Sunrise: {sunrise_local} (Local) / {datetime.utcfromtimestamp(sunrise_utc).strftime('%H:%M:%S')} (UTC)\n"
+                f"🌇 Sunset: {sunset_local} (Local) / {datetime.utcfromtimestamp(sunset_utc).strftime('%H:%M:%S')} (UTC)")
     else:
         return "Sorry, I couldn't retrieve the weather information."
 
