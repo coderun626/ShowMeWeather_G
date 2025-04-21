@@ -1,22 +1,46 @@
-from flask import Flask, request
-import telegram
 import os
+from flask import Flask, request
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
-TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-bot = telegram.Bot(token=TOKEN)
+API_KEY = os.environ['MY_OPEN_WEATHER_MAP_API_KEY']
+TELEGRAM_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 
-app = Flask(__name__)
+flask_app = Flask(__name__)
+telegram_app = None  # Global placeholder
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = telegram.Update.de_json(request.get_json(force=True), bot)
-    chat_id = update.message.chat.id
-    bot.send_message(chat_id=chat_id, text="Hello from Flask!")
-    return "OK", 200
+# Fake weather (placeholder)
+def get_weather(location):
+    return f"Weather info for {location}"
 
-@app.route('/')
+# Telegram bot handlers
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 Send me a location name to get the weather!")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    location = update.message.text
+    weather_info = get_weather(location)
+    await update.message.reply_text(weather_info)
+
+@flask_app.route('/webhook', methods=['POST'])
+async def webhook():
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    await telegram_app.process_update(update)
+    return "ok", 200
+
+@flask_app.route('/')
 def home():
-    return "Bot is running!", 200
+    return "Bot is live!", 200
+
+async def create_app():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    await app.initialize()
+    return app
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    import asyncio
+    loop = asyncio.get_event_loop()
+    telegram_app = loop.run_until_complete(create_app())
+    flask_app.run(host='0.0.0.0', port=5000)
