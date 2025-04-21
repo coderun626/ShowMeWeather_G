@@ -31,16 +31,16 @@ def weather_emoji(description):
     else:
         return "🌍"
 
-# Weather description translation (optional localization)
+# Weather description translation (correct weather terms)
 def weather_translate(description):
     description = description.lower()
     translations = {
-        "clear": "sunny",
+        "clear": "clear",
         "cloud": "cloudy",
-        "rain": "rainy",
-        "thunder": "thundery",
-        "snow": "snowy",
-        "fog": "foggy"
+        "rain": "rain",
+        "thunder": "thunderstorms",
+        "snow": "snow",
+        "fog": "fog"
     }
     return translations.get(description, "unknown")
 
@@ -98,11 +98,11 @@ def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Initialize Flask app
 flask_app = Flask(__name__)
 
-# Webhook route for Flask
+# Webhook route for Flask (asynchronous handler)
 @flask_app.route('/webhook', methods=['POST'])
-def webhook():
+async def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    telegram_app.process_update(update)
+    await telegram_app.process_update(update)  # Awaiting the coroutine here
     return "ok", 200
 
 # Home route for Flask
