@@ -161,7 +161,7 @@ cython_debug/
 
 
 ################### mine ###################
-.tests
-.replit
-.uv.lock
-.pyproject.toml
+tests/
+replit
+uv.lock
+pyproject.toml
