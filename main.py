@@ -1,8 +1,7 @@
-from flask import Flask, request
-import requests
 import os
+import requests
+from flask import Flask, request
 from datetime import datetime, timedelta
-import pytz
 
 TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
 URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
