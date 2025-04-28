@@ -87,7 +87,7 @@ def webhook():
     message_text = data["message"]["text"].strip()
 
     if message_text == '/start':
-        welcome_message = "👋 Hi! Please send me a city name to get the current weather. Asan"
+        welcome_message = "👋 HI! Please send me a city name to get the current weather."
         response_text = welcome_message
     else:
         if message_text:
@@ -102,6 +102,19 @@ def webhook():
     
     return "OK"
 
+def set_webhook():
+    server_url = os.environ.get('SERVER_URL')  # Example: https://yourappname.onrender.com
+    if server_url:
+        webhook_url = f"{server_url}/webhook"
+        set_url = f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}"
+        response = requests.get(set_url)
+        if response.status_code == 200:
+            print("✅ Webhook set successfully!")
+        else:
+            print(f"❌ Failed to set webhook: {response.text}")
+    else:
+        print("❗ SERVER_URL environment variable not set.")
 
 if __name__ == '__main__':
+    set_webhook()
     app.run(host="0.0.0.0", port=5000)
