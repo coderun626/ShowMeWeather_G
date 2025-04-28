@@ -84,22 +84,24 @@ def get_weather(city_name):
 def webhook():
     data = request.get_json()
     chat_id = data["message"]["chat"]["id"]
-    message_text = data["message"]["text"]
-    
-    # Remove leading/trailing whitespaces
-    city_name = message_text.strip()
+    message_text = data["message"]["text"].strip()
 
-    if city_name:
-        weather_info = get_weather(city_name)
+    if message_text == '/start':
+        welcome_message = "👋 Hi! Please send me a city name to get the current weather."
+        response_text = welcome_message
     else:
-        weather_info = "Please provide a city name."
+        if message_text:
+            response_text = get_weather(message_text)
+        else:
+            response_text = "Please provide a city name."
 
     requests.post(URL, json={
         "chat_id": chat_id,
-        "text": weather_info
+        "text": response_text
     })
     
     return "OK"
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
